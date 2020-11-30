@@ -38,6 +38,36 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
         return $items;
     }
 
+        /**
+     * Define que secciones de configuracion requiere
+     * 
+     * @return array Lista de secciones requeridas
+     */
+    public function requiereConfig()
+    {
+        $secciones = array();
+
+        // $secciones[] = 'miSeccion';
+
+        return $secciones;
+    }
+
+    private $config = array();
+
+    /**
+     * Carga UNA seccion de configuración
+     * 
+     * Esta función será llamada por cada seccion que indique "requiereConfig()"
+     * 
+     * @param string $sectionName Nombre de la sección de configuración
+     * @param array $config Arreglo con la configuracion que corresponde a la seccion indicada
+     * 
+     */
+    public function cargaConfig($sectionName, $config)
+    {
+        $this->config[$sectionName] = $config;
+    }
+
 	function __construct()
 	{
 		$this->dbRing = new \euroglas\dbaccess\dbaccess("dbconfig.ini");
