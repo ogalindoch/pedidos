@@ -47,7 +47,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
     {
         $secciones = array();
 
-        // $secciones[] = 'miSeccion';
+        $secciones[] = 'dbaccess';
 
         return $secciones;
     }
@@ -66,17 +66,32 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
     public function cargaConfig($sectionName, $config)
     {
         $this->config[$sectionName] = $config;
+        if ($sectionName == 'dbaccess')
+        {
+            $this->connect_db();
+        }
     }
 
-	function __construct()
-	{
-		$this->dbRing = new \euroglas\dbaccess\dbaccess("dbconfig.ini");
+    private function connect_db()
+    {
+        //static::$configFile = $this->config['dbaccess']['config'];        
+        //if (static::$configFile != '')
+        if ($this->config && $this->config['dbaccess'])
+        {
+            //$this->dbRing = new \euroglas\dbaccess\dbaccess(static::$configFile);
+            $this->dbRing = new \euroglas\dbaccess\dbaccess($this->config['dbaccess']['config']);
+            
+            if( $this->dbRing->connect('TheRing') === false )
+            {
+                print($this->dbRing->getLastError());
+            }
+        }
+    }
 
-		if( $this->dbRing->connect('TheRing') === false )
-		{
-			print($this->dbRing->getLastError());
-		}
-	}
+    function __construct()
+    {
+        $this->DEBUG = isset($_REQUEST['debug']);
+    }
 
     public function listapedidos() {
         /// TODO: Validar permisos
@@ -258,7 +273,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
                 )
         );
     }
-    private function getPedidos($page=null,$numPedido=null)
+    public function getPedidos($page=null,$numPedido=null)
 	{
 		global $DEBUG;
 		if($page==null) $page = 1;
@@ -357,7 +372,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
 		//print_r($sth);
 
 		$datosDePedidos = array();
-		if($DEBUG) {
+		if($this->DEBUG) {
 			$datosDePedidos['query'] = array('raw'=>$query);
 			$datosDePedidos['parametros'] = array(
 				'pedidosPorPagina' => $this->pedidosPorPagina,
@@ -465,4 +480,5 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
 	private $origenDeSurtido = array();
 	private $pedidosPorPaginaDefault = 10;
 	private $dbRing;
+    private $DEBUG = false;
 }
