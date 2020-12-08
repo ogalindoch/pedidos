@@ -29,6 +29,13 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
             'callback' => 'listapedidos',
             'token_required' => TRUE,
         );
+
+        $items['/pedidos/']['GET'] = array(
+            'name' => 'Lista pedidos/',
+            'callback' => 'listapedidos',
+            'token_required' => TRUE,
+        );
+
         $items['/pedidos/[i:id]']['GET'] = array(
             'name' => 'Un pedido',
             'callback' => 'pedido',
@@ -40,7 +47,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
 
         /**
      * Define que secciones de configuracion requiere
-     * 
+     *
      * @return array Lista de secciones requeridas
      */
     public function requiereConfig()
@@ -56,12 +63,12 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
 
     /**
      * Carga UNA seccion de configuración
-     * 
+     *
      * Esta función será llamada por cada seccion que indique "requiereConfig()"
-     * 
+     *
      * @param string $sectionName Nombre de la sección de configuración
      * @param array $config Arreglo con la configuracion que corresponde a la seccion indicada
-     * 
+     *
      */
     public function cargaConfig($sectionName, $config)
     {
@@ -74,13 +81,13 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
 
     private function connect_db()
     {
-        //static::$configFile = $this->config['dbaccess']['config'];        
+        //static::$configFile = $this->config['dbaccess']['config'];
         //if (static::$configFile != '')
         if ($this->config && $this->config['dbaccess'])
         {
             //$this->dbRing = new \euroglas\dbaccess\dbaccess(static::$configFile);
             $this->dbRing = new \euroglas\dbaccess\dbaccess($this->config['dbaccess']['config']);
-            
+
             if( $this->dbRing->connect('TheRing') === false )
             {
                 print($this->dbRing->getLastError());
@@ -102,7 +109,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
             header('content-type: application/json');
             $user = ElUsuario::getInstance();
             $nombre = $user->loginName();
-    
+
             die(json_encode(
                 reportaErrorUsandoHateoas(
                     403,
@@ -118,19 +125,19 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
         $cols = array();
         $origen = array();
         $numPedido = null;
-    
+
         if(isset($_REQUEST['page']))
         {
             $pagina = $_REQUEST['page'];
         }
         if(isset($_REQUEST['pageSize']))
         {
-            $pedidos->pedidosPorPagina = $_REQUEST['pageSize'];
+            $this->pedidosPorPagina = $_REQUEST['pageSize'];
         }
         if(isset($_REQUEST['filter']))
         {
             $filtro = urldecode( $_REQUEST['filter'] );
-            $filtro = validaColumnas($filtro);
+            $filtro = $this->validaColumnas($filtro);
             if($filtro===false)
             {
                 http_response_code(400); // 400 Bad Request
@@ -149,7 +156,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
         if(isset($_REQUEST['columns']))
         {
             $queryCols = urldecode( $_REQUEST['columns'] );
-            $queryCols = validaColumnas($queryCols); // prevent SQL injection
+            $queryCols = $this->validaColumnas($queryCols); // prevent SQL injection
             if($queryCols===false)
             {
                 http_response_code(400); // 400 Bad Request
@@ -161,7 +168,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
                         'El parametro columns contiene caracteres invalidos'
                     ))
                 );
-    
+
             }
             //print("QueryCols = $queryCols\n");
             $cols = explode(',',$queryCols);
@@ -169,7 +176,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
         if(isset($_REQUEST['origenDeSurtido']))
         {
             $queryOrigen = urldecode( $_REQUEST['origenDeSurtido'] );
-            $queryOrigen = validaColumnas($queryOrigen); // prevent SQL injection
+            $queryOrigen = $this->validaColumnas($queryOrigen); // prevent SQL injection
             if($queryOrigen===false)
             {
                 http_response_code(400); // 400 Bad Request
@@ -181,26 +188,26 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
                         'El parametro origenDeSurtido contiene caracteres invalidos'
                     ))
                 );
-    
+
             }
             //print("QueryCols = $queryCols\n");
             $origen = explode(',',$queryOrigen);
         }
-    
+
         if(isset($_REQUEST['numPedido']))
         {
             $numPedido = $_REQUEST['numPedido'];
         }
-    
+
         $this->filtro = $filtro;
         $this->cols = $cols;
         $this->origenDeSurtido = $origen;
         $losPedidos = $this->getPedidos($pagina,$numPedido);
-    
+
         die( $this->formateaRespuesta( $losPedidos ) );
-    
+
     }
-    
+
     public function pedido($id=-1) {
         /*
         if( FALSE === ElUsuario::TienePermiso('ver pedidos') )
@@ -216,12 +223,12 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
             );
         }
         */
-    
+
         //global $loader, $twig;
         //$pedidos = new ClassPedidos();
-    
+
         $elPedido = $this->getPedido($id);
-    
+
         if( $elPedido === false )
         {
             http_response_code(404); // 404 Not Found
@@ -234,21 +241,21 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
                 ))
             );
         }
-    
+
         if(
             (isset( $_SERVER['HTTP_ACCEPT'] ) && stripos($_SERVER['HTTP_ACCEPT'], 'json')!==false)
             || (isset( $_REQUEST['format'] ) && stripos($_REQUEST['format'], 'json')!==false)
-    
+
         )
         {
             header('content-type: application/json');
-    
+
             //print('<pre>');print_r($elPedido);print('</pre>');
             $elPedido['NotaPedido'] = addcslashes($elPedido['NotaPedido'], "\r\n\t");
-    
+
             //echo $twig->render('pedido.json', $elPedido ) ;
             //echo $twig->render('pedido.json', addcslashes( $elPedido, "\r\n" ) ) ;
-    
+
             die( json_encode( $elPedido ) );
         }
         else
@@ -259,7 +266,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
             die( print_r($elPedido,true) );
         }
     }
-    
+
     function validaColumnas($string)
     {
         //return preg_replace('/[^a-zA-Z0-9,\s]/', '', $string); este filtro permite espacios
@@ -275,7 +282,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
     }
     public function getPedidos($page=null,$numPedido=null)
 	{
-		global $DEBUG;
+		//global $DEBUG;
 		if($page==null) $page = 1;
 
 		if( count($this->filtro) > 0 )
@@ -372,18 +379,21 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
 		//print_r($sth);
 
 		$datosDePedidos = array();
-		if($this->DEBUG) {
-			$datosDePedidos['query'] = array('raw'=>$query);
-			$datosDePedidos['parametros'] = array(
-				'pedidosPorPagina' => $this->pedidosPorPagina,
-				'filtro' => $this->filtro,
-				'cols' => $this->cols,
-				'origenDeSurtido' => $this->origenDeSurtido
-			);
-		}
+
 		while(	$datosDelPedido = $sth->fetch(\PDO::FETCH_ASSOC) )
 		{
 			$datosDelPedido['links'] = array('self'=>"/pedidos/{$datosDelPedido['idPedido']}");
+
+            if($this->DEBUG) {
+                $datosDelPedido['debug']['pedido']['query'] = array('raw'=>$query);
+                $datosDelPedido['debug']['pedido']['parametros'] = array(
+                    'pedidosPorPagina' => $this->pedidosPorPagina,
+                    'filtro' => $this->filtro,
+                    'cols' => $this->cols,
+                    'origenDeSurtido' => $this->origenDeSurtido
+                );
+            }
+
 			$datosDePedidos[] = $datosDelPedido;
 		}
 
@@ -431,6 +441,18 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
 		//print_r($datosDelPedido);
 		$datosDelPedido['Partidas'] = $partidasDelPedido;
 
+        if($this->DEBUG) {
+            $datosDelPedido['debug']['pedido partidas']['query'] = array(
+                'raw'=>$this->dbRing->rawQueryPrepared('queryGetPedidoPartidas'),
+                'values' => $idPedido
+            );
+            $datosDelPedido['debug']['pedido partidas']['parametros'] = array(
+                'pedidosPorPagina' => $this->pedidosPorPagina,
+                'filtro' => $this->filtro
+            );
+            $datosDelPedido['debug']['pedido partidas']['count'] =count($partidasDelPedido);
+        }
+
 		//print_r( $result );
 		return($datosDelPedido);
 	}
@@ -473,7 +495,7 @@ class pedidos implements \euroglas\eurorest\restModuleInterface
 			return( print_r($datos, TRUE) );
 		}
     }
-    
+
     private $pedidosPorPagina = 10;
 	private $filtro = array();
 	private $cols=array();
